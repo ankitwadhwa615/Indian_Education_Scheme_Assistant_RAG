@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 
 import chromadb
+from filelock import FileLock
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -15,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "Education_scheme_details.json"
 DATABASE_DIR = BASE_DIR / "scheme_db"
 READY_FILE = DATABASE_DIR / ".index_ready"
+BUILD_LOCK_FILE = BASE_DIR / ".scheme_db_build.lock"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
@@ -57,9 +59,7 @@ References:\n{references}"""
 
 
 def is_database_ready() -> bool:
-    """Check for indexed chunks, including databases built before the marker existed."""
-    if READY_FILE.exists():
-        return True
+    """Check that the database has persisted chunks, not only a marker file."""
     if not DATABASE_DIR.exists():
         return False
     try:
@@ -67,31 +67,40 @@ def is_database_ready() -> bool:
         is_populated = any(collection.count() > 0 for collection in client.list_collections())
     except Exception:
         return False
-    if is_populated:
+    if is_populated and not READY_FILE.exists():
         READY_FILE.write_text("ready\n", encoding="utf-8")
     return is_populated
 
 
 def create_database(reset: bool = False):
-    """Create the database from the bundled dataset and return its path."""
-    if not DATA_FILE.exists():
-        raise FileNotFoundError(
-            f"Dataset not found: {DATA_FILE}. Ensure Education_scheme_details.json is included in the deployment."
+    """Create the database once, even when concurrent hosted sessions start."""
+    # Streamlit can execute multiple sessions simultaneously. Recheck inside
+    # the lock so only one execution creates or resets Chroma persistence.
+    with FileLock(str(BUILD_LOCK_FILE), timeout=600):
+        if not DATA_FILE.exists():
+            raise FileNotFoundError(
+                f"Dataset not found: {DATA_FILE}. Ensure Education_scheme_details.json is included in the deployment."
+            )
+        if DATABASE_DIR.exists():
+            if not reset and is_database_ready():
+                return DATABASE_DIR
+            shutil.rmtree(DATABASE_DIR)
+        with DATA_FILE.open(encoding="utf-8") as file:
+            schemes = json.load(file)
+        chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(build_documents(schemes))
+        print(f"Loaded {len(schemes)} schemes and created {len(chunks)} chunks.")
+        vectorstore = Chroma.from_documents(
+            documents=chunks,
+            embedding=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL),
+            persist_directory=str(DATABASE_DIR),
         )
-    if DATABASE_DIR.exists():
-        if not reset and is_database_ready():
-            return DATABASE_DIR
-        shutil.rmtree(DATABASE_DIR)
-    with DATA_FILE.open(encoding="utf-8") as file:
-        schemes = json.load(file)
-    chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(build_documents(schemes))
-    print(f"Loaded {len(schemes)} schemes and created {len(chunks)} chunks.")
-    Chroma.from_documents(documents=chunks, embedding=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL), persist_directory=str(DATABASE_DIR))
-    # Write this only after Chroma has accepted every chunk. A folder alone is
-    # not proof of a usable index on ephemeral hosted environments.
-    READY_FILE.write_text("ready\n", encoding="utf-8")
-    print(f"Vector database created at {DATABASE_DIR}")
-    return DATABASE_DIR
+        indexed_chunks = vectorstore._collection.count()
+        if indexed_chunks != len(chunks):
+            raise RuntimeError(f"Index build incomplete: expected {len(chunks)} chunks, found {indexed_chunks}.")
+        # Written only after every chunk has been persisted and verified.
+        READY_FILE.write_text("ready\n", encoding="utf-8")
+        print(f"Vector database created at {DATABASE_DIR} ({indexed_chunks} chunks)")
+        return DATABASE_DIR
 
 
 def main():

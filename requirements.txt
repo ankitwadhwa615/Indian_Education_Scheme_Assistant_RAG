@@ -3,6 +3,7 @@ langchain-community
 langchain-huggingface
 langchain-chroma
 chromadb
+filelock
 sentence-transformers
 pypdf
 streamlit
