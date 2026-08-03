@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 import os
+import re
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
@@ -26,6 +27,14 @@ ABOUT_ASSISTANT = {
     "help",
 }
 
+
+def expand_query(question: str) -> str:
+    """Map common conversational abbreviations to terms present in the dataset."""
+    expanded = re.sub(r"\bpost[- ]?grad\b", "post graduate", question, flags=re.IGNORECASE)
+    if expanded != question:
+        return f"{expanded} scholarships higher education post matric"
+    return question
+
 prompt = ChatPromptTemplate.from_template(
     """
 You are the Indian Government Education and Training Scheme Assistant.
@@ -35,6 +44,12 @@ Use the supplied context as the factual source of truth. Do not invent scheme
 details, eligibility, benefits, or application steps. If the answer is not in
 the context, say exactly: "I could not find relevant information in the scheme database."
 Give a concise, clear answer; use bullets when they improve readability.
+
+For broad discovery questions (for example, asking for postgraduate schemes),
+identify the relevant scheme names found in the context and briefly explain why
+each is relevant. Do not return the no-result message when the context contains
+related schemes. Keep details attached to the correct scheme; retrieved chunks
+can come from different schemes.
 
 Conversation history:
 {history}
@@ -51,9 +66,9 @@ Answer:
 @lru_cache(maxsize=1)
 def get_retriever():
     """Initialize the local vector store, building it on a fresh deployment."""
-    if not DATABASE_DIR.exists():
-        from ingest import create_database
+    from ingest import create_database, is_database_ready
 
+    if not is_database_ready():
         create_database()
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vectorstore = Chroma(persist_directory=str(DATABASE_DIR), embedding_function=embeddings)
@@ -93,7 +108,7 @@ def get_answer(question: str, history: str = "") -> dict:
             "sources": [],
         }
 
-    docs = get_retriever().invoke(question)
+    docs = get_retriever().invoke(expand_query(question))
     context = "\n\n".join(doc.page_content for doc in docs)
     if len(context.strip()) < 50:
         return {"answer": "I could not find relevant information in the scheme database.", "sources": docs}
@@ -101,4 +116,18 @@ def get_answer(question: str, history: str = "") -> dict:
     response = (prompt | get_llm()).invoke(
         {"question": question, "context": context, "history": history or "No prior conversation."}
     )
-    return {"answer": response.content, "sources": docs}
+    answer = response.content
+    if "i could not find relevant information in the scheme database" in answer.lower():
+        # A broad query can retrieve useful records even when the model declines
+        # to compose a detailed answer. Surface those verified scheme names.
+        scheme_names = list(dict.fromkeys(
+            document.metadata.get("scheme_name", "") for document in docs
+            if document.metadata.get("scheme_name")
+        ))
+        if scheme_names:
+            answer = (
+                "I found these potentially relevant schemes in the database:\n\n"
+                + "\n".join(f"- {name}" for name in scheme_names[:5])
+                + "\n\nAsk about one of these schemes for eligibility, benefits, or application details."
+            )
+    return {"answer": answer, "sources": docs}
