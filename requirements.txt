@@ -1,0 +1,16 @@
+langchain
+langchain-community
+langchain-huggingface
+langchain-chroma
+chromadb
+sentence-transformers
+pypdf
+streamlit
+ragas
+groq
+langchain-groq
+python-dotenv
+requests
+beautifulsoup4
+pandas
+torchvision
