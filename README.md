@@ -53,8 +53,8 @@ GROQ_MODEL=qwen/qwen3.6-27b  # optional
 ```
 
 The generated `scheme_db` is intentionally excluded from Git. On a fresh deployment,
-the app automatically creates it from the included JSON dataset on the first scheme
-query. This can make that first answer slower. To build it locally in advance:
+the app automatically creates it in temporary runtime storage from the included JSON
+dataset. This can make the first answer slower. To build it locally in advance:
 
 ```bash
 python ingest.py --reset
@@ -67,6 +67,8 @@ The first embedding-model use may download model weights from Hugging Face.
 
 Keep `Education_scheme_details.json` committed to the repository. It is required for
 first-run indexing in hosted environments; `scheme_db/` does not need to be committed.
+The generated index is stored outside Streamlit's watched source folder so indexing
+does not interrupt the running app.
 
 ## Project structure
 

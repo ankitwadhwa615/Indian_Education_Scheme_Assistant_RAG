@@ -235,7 +235,7 @@ if query:
     start = time.time()
 
     try:
-        with st.spinner("Searching schemes..."):
+        with st.spinner("Finding relevant government schemes..."):
             result = get_answer(query, history=format_history(messages[:-1]))
     except (FileNotFoundError, RuntimeError) as error:
         result = {"answer": f"I’m unable to answer that right now. {error}", "sources": []}

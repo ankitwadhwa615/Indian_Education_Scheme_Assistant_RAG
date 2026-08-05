@@ -2,8 +2,10 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
+import tempfile
 
 import chromadb
 from filelock import FileLock
@@ -11,12 +13,21 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+token = os.getenv("HF_TOKEN")
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "Education_scheme_details.json"
+# Keep generated runtime data outside Streamlit's watched source directory.
+# This prevents a file-write rerun from interrupting a first-time index build.
+RUNTIME_DIR = BASE_DIR
 DATABASE_DIR = BASE_DIR / "scheme_db"
 READY_FILE = DATABASE_DIR / ".index_ready"
-BUILD_LOCK_FILE = BASE_DIR / ".scheme_db_build.lock"
+BUILD_LOCK_FILE = RUNTIME_DIR / ".scheme_db_build.lock"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
@@ -76,6 +87,7 @@ def create_database(reset: bool = False):
     """Create the database once, even when concurrent hosted sessions start."""
     # Streamlit can execute multiple sessions simultaneously. Recheck inside
     # the lock so only one execution creates or resets Chroma persistence.
+    RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     with FileLock(str(BUILD_LOCK_FILE), timeout=600):
         if not DATA_FILE.exists():
             raise FileNotFoundError(
@@ -87,13 +99,21 @@ def create_database(reset: bool = False):
             shutil.rmtree(DATABASE_DIR)
         with DATA_FILE.open(encoding="utf-8") as file:
             schemes = json.load(file)
+        print("Schemes loaded:", len(schemes))
         chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(build_documents(schemes))
         print(f"Loaded {len(schemes)} schemes and created {len(chunks)} chunks.")
+        print("Chunks created:", len(chunks))
+        print("Starting Chroma indexing...")
         vectorstore = Chroma.from_documents(
             documents=chunks,
-            embedding=HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL),
+            embedding=HuggingFaceEmbeddings(
+                model_name=EMBEDDING_MODEL,
+                encode_kwargs={"batch_size": 64},
+            ),
             persist_directory=str(DATABASE_DIR),
         )
+        print("Chroma indexing finished.")
+        print("Collection count:", vectorstore._collection.count())
         indexed_chunks = vectorstore._collection.count()
         if indexed_chunks != len(chunks):
             raise RuntimeError(f"Index build incomplete: expected {len(chunks)} chunks, found {indexed_chunks}.")

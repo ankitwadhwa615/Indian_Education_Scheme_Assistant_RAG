@@ -65,13 +65,28 @@ Answer:
 
 @lru_cache(maxsize=1)
 def get_retriever():
-    """Initialize the local vector store, building it on a fresh deployment."""
-    from ingest import create_database, is_database_ready
+    if not DATABASE_DIR.exists():
+        raise RuntimeError(
+            f"Vector database not found at {DATABASE_DIR}. "
+            "Run ingest.py before deployment."
+        )
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL
+    )
 
-    if not is_database_ready():
-        create_database()
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-    vectorstore = Chroma(persist_directory=str(DATABASE_DIR), embedding_function=embeddings)
+    vectorstore = Chroma(
+        persist_directory=str(DATABASE_DIR),
+        embedding_function=embeddings
+    )
+
+    count = vectorstore._collection.count()
+    print(f"Loaded Chroma DB with {count} chunks")
+
+    if count == 0:
+        raise RuntimeError(
+            f"Chroma database at {DATABASE_DIR} is empty."
+        )
+
     return vectorstore.as_retriever(search_kwargs={"k": 5})
 
 
