@@ -49,7 +49,7 @@ Create `.env` in the project root:
 
 ```env
 GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=qwen/qwen3.6-27b  # optional
+GROQ_MODEL=openai/gpt-oss-120b # optional
 ```
 
 The generated `scheme_db` is intentionally excluded from Git. On a fresh deployment,

@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 import streamlit as st
 
@@ -7,11 +8,12 @@ from rag import get_answer
 # ==========================
 # PAGE CONFIG
 # ==========================
-
 st.set_page_config(
     page_title="Indian Education Scheme Assistant",
+    page_icon="assets/indian_education_rag_logo.png",
     layout="wide"
 )
+
 
 # ==========================
 # CUSTOM CSS
@@ -151,7 +153,12 @@ st.sidebar.markdown("""
 # MAIN TITLE
 # ==========================
 
-st.title("🇮🇳 Indian Education Scheme Assistant")
+logo_path = Path(__file__).parent / "assets" / "india_education_logo.png"
+logo_col, title_col = st.columns([1, 7], vertical_alignment="center")
+
+
+with title_col:
+    st.title("Indian Education Scheme Assistant")
 
 # ==========================
 # DISPLAY CHAT

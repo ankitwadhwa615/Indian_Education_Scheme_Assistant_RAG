@@ -1,0 +1,36 @@
+<svg width="680" height="480" viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Logo mixing the Indian flag with a graduation cap</title>
+<desc>A circular emblem with saffron, white, and green tricolor bands, a navy Ashoka Chakra wheel in the center, and a graduation cap placed on top symbolizing Indian education schemes.</desc>
+
+<circle cx="340" cy="220" r="150" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="1"/>
+<path d="M 340 70 A 150 150 0 0 1 470 145 L 340 220 Z" fill="#FF9933"/>
+<path d="M 470 145 A 150 150 0 0 1 470 295 L 340 220 Z" fill="#FFFFFF"/>
+<path d="M 470 295 A 150 150 0 0 1 340 370 L 340 220 Z" fill="#138808"/>
+<path d="M 340 370 A 150 150 0 0 1 210 295 L 340 220 Z" fill="#138808"/>
+<path d="M 210 295 A 150 150 0 0 1 210 145 L 340 220 Z" fill="#FFFFFF"/>
+<path d="M 210 145 A 150 150 0 0 1 340 70 L 340 220 Z" fill="#FF9933"/>
+
+<circle cx="340" cy="220" r="150" fill="none" stroke="#CCCCCC" stroke-width="1"/>
+
+<circle cx="340" cy="220" r="46" fill="#FFFFFF" stroke="#000080" stroke-width="2"/>
+<circle cx="340" cy="220" r="4" fill="#000080"/>
+<g stroke="#000080" stroke-width="1.5">
+<line x1="340" y1="174" x2="340" y2="266"/>
+<line x1="294" y1="220" x2="386" y2="220"/>
+<line x1="307.5" y1="187.5" x2="372.5" y2="252.5"/>
+<line x1="307.5" y1="252.5" x2="372.5" y2="187.5"/>
+<line x1="296.5" y1="203" x2="383.5" y2="237"/>
+<line x1="296.5" y1="237" x2="383.5" y2="203"/>
+<line x1="315" y1="180" x2="365" y2="260"/>
+<line x1="315" y1="260" x2="365" y2="180"/>
+</g>
+
+<g transform="translate(340,120)">
+<polygon points="-95,0 0,-32 95,0 0,32" fill="#1A1A1A"/>
+<rect x="-46" y="-10" width="92" height="60" rx="4" fill="#1A1A1A"/>
+<circle cx="0" cy="0" r="7" fill="#B08D2A"/>
+<line x1="60" y1="0" x2="90" y2="55" stroke="#B08D2A" stroke-width="2"/>
+<circle cx="90" cy="60" r="7" fill="#B08D2A"/>
+</g>
+
+</svg>
