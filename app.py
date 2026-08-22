@@ -143,7 +143,7 @@ st.sidebar.markdown("""
 - ChromaDB
 - BAAI BGE Embeddings
 - Groq API
-- Qwen 3.6 27B (LLM)
+- Openai/gpt-oss-120b
 - Streamlit
 """)
 

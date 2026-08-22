@@ -16,7 +16,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_DIR = BASE_DIR / "scheme_db"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 GREETINGS = {"hi", "hello", "hey", "good morning", "good evening", "good afternoon"}
 ABOUT_ASSISTANT = {
